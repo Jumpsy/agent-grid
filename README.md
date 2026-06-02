@@ -7,6 +7,8 @@ They share a workspace, prompt each other **live** (you watch it happen), review
 other's code, and auto-route tasks to whoever's best. Run it on your laptop, or on a VPS
 and reach it from any browser.
 
+![agent-grid demo](assets/demo.gif)
+
 ```
 ┌── claude ──────────┬── codex ───────────┐
 │ ❯ [opencode says]  │ ❯ build the API     │
