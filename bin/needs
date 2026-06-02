@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+Q="${AGENT_SHARED:-$HOME/.agent-grid/shared}/user-requests.log"; touch "$Q"
+[ "$1" = clear ] && { : > "$Q"; echo cleared.; exit 0; }
+[ -s "$Q" ] && cat "$Q" || echo "(nothing needed from the user)"

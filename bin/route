@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# route "<task>" -> auto-picks the strongest agent and sends the task there
+t="$*"; [ -z "$t" ] && { echo "usage: route <task>"; exit 1; }
+lc=$(printf '%s' "$t" | tr 'A-Z' 'a-z')
+if   echo "$lc" | grep -qE 'design|ui|ux|front[ -]?end|css|layout|style|visual|landing|logo|colou?r|animation'; then a=agy
+elif echo "$lc" | grep -qE 'back[ -]?end|api|database|db|server|auth|endpoint|sql|schema|algorithm|performance|systems?|infra|deploy'; then a=codex
+elif echo "$lc" | grep -qE 'cheap|bulk|simple|quick|draft|boilerplate|rename|format|lint'; then a=opencode
+else a=claude; fi
+# fall back to any installed agent if the ideal one isn't present
+sess="$(tmux display-message -p '#{session_name}' 2>/dev/null)"; [ -z "$sess" ] && sess="${GRID_SESSION:-agents}"
+have=$(tmux list-panes -t "$sess" -F '#{@agent}' 2>/dev/null)
+echo "$have" | grep -qx "$a" || a=$(echo "$have" | head -1)
+echo "auto-routed to: $a"; ask "$a" "$t"

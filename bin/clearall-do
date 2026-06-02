@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+GRID_HOME="${GRID_HOME:-$HOME/.agent-grid}"; source "$GRID_HOME/lib/registry.sh"
+sess="${1:-agents}"
+rootenv=""; [ "$(id -u)" = 0 ] && rootenv="IS_SANDBOX=1"
+tmux list-panes -t "$sess" -F '#{pane_id} #{@agent}' 2>/dev/null | while read -r pid ag; do
+  [ -z "$ag" ] && continue
+  tmux respawn-pane -k -t "$pid" "bash -lc 'export AGENT_NAME=$ag $rootenv; $(agent_launch_cmd "$ag"); exec bash'"
+done
+: > "${AGENT_SHARED:-$HOME/.agent-grid/shared}/conversation.log" 2>/dev/null || true

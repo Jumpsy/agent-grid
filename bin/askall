@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+p="$*"; [ -z "$p" ] && { echo "usage: askall <prompt>"; exit 1; }
+sess="$(tmux display-message -p '#{session_name}' 2>/dev/null)"; [ -z "$sess" ] && sess="${GRID_SESSION:-agents}"
+for k in $(tmux list-panes -t "$sess" -F '#{@agent}' 2>/dev/null | sort -u); do
+  [ -n "$k" ] && ask "$k" "$p"
+done

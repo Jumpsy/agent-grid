@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+S="${AGENT_SHARED:-$HOME/.agent-grid/shared}/conversation.log"; touch "$S"
+case "$1" in -f|--follow) tail -f "$S" ;; *) tail -n "${1:-40}" "$S" ;; esac

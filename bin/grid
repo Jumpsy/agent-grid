@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+GRID_HOME="${GRID_HOME:-$HOME/.agent-grid}"
+# shellcheck source=/dev/null
+source "$GRID_HOME/lib/registry.sh"
+SESSION="${GRID_SESSION:-agents}"
+WORK="${GRID_WORKSPACE:-$HOME/agent-workspace}"
+mkdir -p "$WORK" "$AGENT_SHARED"
+[ -f "$WORK/AGENTS.md" ] || cp "$GRID_HOME/AGENTS.md" "$WORK/AGENTS.md" 2>/dev/null || true
+
+case "${1:-up}" in
+  serve)        exec "$GRID_HOME/bin/grid-serve" ;;
+  clear)        exec "$GRID_HOME/bin/clearall" ;;
+  help|-h|--help)
+    cat <<H
+agent-grid — run all your AI coding agents in one terminal, talking to each other
+
+  grid            launch (or re-attach to) your agent grid
+  grid serve      expose the grid as a password-locked web terminal (for a VPS)
+  grid clear      reset every agent
+  grid help       this help
+
+Inside the grid (or from any shell):
+  ask <agent> "..."     prompt one agent live (you watch it happen)
+  askall "..."          prompt all agents at once
+  route "<task>"        auto-send a task to the best-suited agent
+  convo [-f]            see the shared feed of every agent's prompts & replies
+  crossreview <file>    have all agents review & fix a file
+  clearall              reset every agent
+
+tmux: Ctrl-b e broadcast on · Ctrl-b E off · Ctrl-b z zoom · Ctrl-b K clear all
+H
+    exit 0 ;;
+esac
+
+if tmux has-session -t "$SESSION" 2>/dev/null; then exec tmux attach -t "$SESSION"; fi
+read -ra AGENTS <<< "$(detect_agents)"
+[ "${#AGENTS[@]}" -eq 0 ] && { echo "No agent CLIs found on PATH. Run the installer or install at least one (claude/codex/gemini/opencode/agy)."; exit 1; }
+rootenv=""; [ "$(id -u)" = 0 ] && rootenv="IS_SANDBOX=1"
+first=1
+for a in "${AGENTS[@]}"; do
+  run="clear; export AGENT_NAME=$a $rootenv; printf '\033]2;$a\033\\\\'; $(agent_launch_cmd "$a"); exec bash"
+  if [ "$first" = 1 ]; then tmux new-session -d -s "$SESSION" -n agents -c "$WORK"; first=0
+  else tmux split-window -t "$SESSION" -c "$WORK"; tmux select-layout -t "$SESSION" tiled >/dev/null; fi
+  tmux send-keys -t "$SESSION" "$run" C-m
+  tmux set -p -t "$SESSION" @agent "$a"
+done
+tmux select-layout -t "$SESSION" tiled >/dev/null
+[ -f "$GRID_HOME/tmux-grid.conf" ] && tmux source-file "$GRID_HOME/tmux-grid.conf" 2>/dev/null || true
+tmux select-pane -t "${SESSION}.0" 2>/dev/null || true
+exec tmux attach -t "$SESSION"

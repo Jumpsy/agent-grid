@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# mcp-add <name> <command> [args...] — register a stdio MCP into every installed agent
+name="$1"; cmd="$2"; shift 2 || true; args=("$@")
+[ -z "$name" ] || [ -z "$cmd" ] && { echo "usage: mcp-add <name> <command> [args...]"; exit 1; }
+command -v claude   >/dev/null && claude mcp add -s user "$name" "$cmd" "${args[@]}" 2>/dev/null && echo "claude ✓"
+command -v codex    >/dev/null && codex mcp add "$name" -- "$cmd" "${args[@]}" 2>/dev/null && echo "codex ✓"
+command -v opencode >/dev/null && opencode mcp add "$name" "$cmd" "${args[@]}" 2>/dev/null && echo "opencode ✓"
+command -v agy      >/dev/null && agy plugin import claude >/dev/null 2>&1 && echo "agy ✓ (imported)"
+echo "done — restart a pane to load '$name'."

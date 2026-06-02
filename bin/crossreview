@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+f="$1"; { [ -z "$f" ] || [ ! -f "$f" ]; } && { echo "usage: crossreview <file>"; exit 1; }
+askall "Review the file $f. List concrete bugs, bad practices, or design issues and give the fix. Be direct and concise."

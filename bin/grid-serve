@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Expose your agent grid as a password-protected web terminal reachable from any browser.
+# Uses ttyd (local) + a Cloudflare quick tunnel (outbound, no firewall changes needed).
+set -e
+GRID_HOME="${GRID_HOME:-$HOME/.agent-grid}"
+PORT="${GRID_WEB_PORT:-7681}"
+USER_NAME="${GRID_WEB_USER:-admin}"
+PASS="${GRID_WEB_PASS:-$( (openssl rand -base64 18 2>/dev/null || head -c 18 /dev/urandom | base64) | tr -d '/+=' | cut -c1-20)}"
+
+command -v ttyd >/dev/null || { echo "ttyd not found. Install: apt-get install -y ttyd  (or brew install ttyd)"; exit 1; }
+command -v cloudflared >/dev/null || { echo "cloudflared not found — installing…"; curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared; }
+
+echo "starting web terminal on 127.0.0.1:$PORT (user: $USER_NAME  pass: $PASS)"
+pkill -f "ttyd .*$PORT" 2>/dev/null || true
+ttyd --port "$PORT" --interface 127.0.0.1 --credential "$USER_NAME:$PASS" --writable "$GRID_HOME/bin/grid" >/tmp/grid-ttyd.log 2>&1 &
+sleep 1
+echo "opening public HTTPS tunnel…"
+cloudflared tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" 2>/tmp/grid-tunnel.log &
+for i in $(seq 1 20); do
+  url=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' /tmp/grid-tunnel.log | head -1)
+  [ -n "$url" ] && break; sleep 2
+done
+echo
+echo "================ YOUR GRID IS LIVE ================"
+echo "  URL:  ${url:-<starting… check /tmp/grid-tunnel.log>}"
+echo "  user: $USER_NAME"
+echo "  pass: $PASS"
+echo "=================================================="
+echo "(Open that URL on any computer, log in, and you're in your agent grid.)"

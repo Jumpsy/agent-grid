@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# ask <agent> "<prompt>" -> types '[sender says] prompt' LIVE into that agent's pane,
+# waits for the reply, prints it back, and logs both to the shared feed.
+a="$1"; shift; p="$*"
+[ -z "$a" ] || [ -z "$p" ] && { echo "usage: ask <agent> <prompt>"; exit 1; }
+case "$a" in antigravity) key=agy ;; *) key="$a" ;; esac
+sess="$(tmux display-message -p '#{session_name}' 2>/dev/null)"; [ -z "$sess" ] && sess="${GRID_SESSION:-agents}"
+pane=$(tmux list-panes -t "$sess" -F '#{pane_id} #{@agent}' 2>/dev/null | awk -v k="$key" '$2==k{print $1;exit}')
+[ -z "$pane" ] && { echo "no '$key' pane in session $sess"; exit 1; }
+FROM="${AGENT_NAME:-user}"; msg="[$FROM says] $p"
+S="${AGENT_SHARED:-$HOME/.agent-grid/shared}/conversation.log"; mkdir -p "$(dirname "$S")"
+printf '[%s] %s -> %s: %s\n' "$(date -u +%H:%M:%S)" "$FROM" "$a" "$p" >> "$S"
+tmux send-keys -t "$pane" -l "$msg"; sleep 0.4; tmux send-keys -t "$pane" Enter
+prev=""; stable=0
+for i in $(seq 1 30); do
+  sleep 2; cur=$(tmux capture-pane -p -J -S -300 -t "$pane" 2>/dev/null)
+  if [ "$cur" = "$prev" ]; then stable=$((stable+1)); [ "$stable" -ge 2 ] && break; else stable=0; fi
+  prev="$cur"
+done
+reply=$(printf '%s\n' "$cur" | awk -v m="$msg" 'index($0,m){f=1;next} f{print}' \
+  | grep -vE '^[[:space:]]*[─❯╌▀▁]|bypass permissions|shift\+tab|for agents|^[[:space:]]*$' \
+  | sed 's/^[[:space:]]*[●✻▸•]*[[:space:]]*//')
+printf '[%s] %s <- %s (reply): %s\n' "$(date -u +%H:%M:%S)" "$a" "$FROM" "$(printf '%s' "$reply" | tr '\n' ' ' | cut -c1-300)" >> "$S"
+echo "----- $a replied -----"; printf '%s\n' "$reply"

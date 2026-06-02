@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+Q="${AGENT_SHARED:-$HOME/.agent-grid/shared}/user-requests.log"; mkdir -p "$(dirname "$Q")"
+printf '[%s] %s NEEDS: %s\n' "$(date -u +%H:%M:%S)" "${AGENT_NAME:-agent}" "$*" >> "$Q"
+echo "registered; the lead agent will relay this to the user."

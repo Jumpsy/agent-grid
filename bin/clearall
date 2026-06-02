@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+sess="$(tmux display-message -p '#{session_name}' 2>/dev/null)"; [ -z "$sess" ] && sess="${GRID_SESSION:-agents}"
+tmux run-shell -b "${GRID_HOME:-$HOME/.agent-grid}/bin/clearall-do $sess"
+echo "clearing all agents (restarting fresh)…"
