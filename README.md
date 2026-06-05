@@ -88,6 +88,15 @@ Paste this into Claude Code (locally or SSH'd into a VPS):
 
 The installer sets all of them up; you only log into the ones you use.
 
+## Included skills
+
+The repo ships a growing library of agent skills under `skills/`. Each skill teaches
+your agents a specialization that raises the quality bar above default behavior.
+
+| Skill | File | What it does |
+|---|---|---|
+| **avengers** | `skills/avengers/SKILL.md` | Master orchestrator — plan, delegate across all agents, enforce a top-tier design + code bar, anti-vibe-coded rules, luxury color psychology, and full-site build standards. Load it with `skill avengers` in Claude Code. |
+
 ## How it works
 
 Each agent runs in its own tmux pane tagged with a `@agent` marker. `ask` finds the target
